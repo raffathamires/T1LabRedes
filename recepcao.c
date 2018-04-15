@@ -19,6 +19,7 @@
 #include <netinet/in.h> //definicao de protocolos
 #include <arpa/inet.h> //funcoes para manipulacao de enderecos IP
 #include <netinet/ip.h>
+#include <netinet/udp.h>
 
 #include <netinet/in_systm.h> //tipos de dados
 
@@ -32,6 +33,35 @@
   int sockd;
   int on;
   struct ifreq ifr;
+
+uint16_t checksum (uint16_t *addr, int len) {
+	  int count = len;
+	  register uint32_t sum = 0;
+	  uint16_t answer = 0;
+	
+	  // Sum up 2-byte values until none or only one byte left.
+	  while (count > 1) {
+	    sum += *(addr++);
+	    count -= 2;
+	  }
+	
+	  // Add left-over byte, if any.
+	  if (count > 0) {
+	    sum += *(uint8_t *) addr;
+	  }
+	
+	  // Fold 32-bit sum into 16 bits; we lose information by doing this,
+	  // increasing the chances of a collision.
+	  // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
+	  while (sum >> 16) {
+	    sum = (sum & 0xffff) + (sum >> 16);
+	  }
+	
+	  // Checksum is one's compliment of sum.
+	  answer = ~sum;
+	
+	  return (answer);
+	}
 
 unsigned short in_cksum(unsigned short *addr,int len)
 {
@@ -74,7 +104,7 @@ int main(int argc,char *argv[])
     }
 
 	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
-	strcpy(ifr.ifr_name, "enp4s0");
+	strcpy(ifr.ifr_name, "enp2s0");
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
