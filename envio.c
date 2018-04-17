@@ -62,9 +62,11 @@ unsigned short in_cksum(unsigned short *addr,int len)
 void monta_tcp()
 {
 
-struct tcphdr *tcph = (struct tcphdr *) (buff + sizeof(struct iphdr));
+printf("estou no tcp");
+fflush( stdout );
+struct tcphdr *tcph = (struct tcphdr *) (buff + sizeof(struct iphdr) + sizeof(struct ether_header));
 
-//tcph->th_sport = htons(54170);
+//tcph->th_sport = htons(6666);
 //tcph->th_dport = htons(443);
 //tcph->th_seq = 0X39A032DF;
 //tcph->th_ack = 0XEEA4822F;
@@ -90,7 +92,10 @@ struct tcphdr *tcph = (struct tcphdr *) (buff + sizeof(struct iphdr));
 void monta_udp()
 {
 
-struct udphdr *udph = (struct udphdr *) (buff + sizeof(struct iphdr));
+
+printf("estou no udp");
+fflush( stdout );
+struct udphdr *udph = (struct udphdr *) (buff + sizeof(struct iphdr) + sizeof(struct ether_header));
 
 udph->uh_sport = htons(6666);
 udph->uh_dport = htons(8622);
@@ -110,25 +115,35 @@ void monta_ip()
 int b = 0;
 
 printf("Digite 1 para UDP ou 2 para TCP; \n");
+fflush(stdout);
 scanf("%d", &b);
+fflush(stdin);
 
 if(b == 1){
-  struct iphdr *iph = (struct iphdr*)(buff + sizeof(struct ether_header));
-  char *ip_src = "192.168.1.103";
+  printf("estou no ipv4 \n");
+  fflush( stdout );
+  struct iphdr *iph = (struct iphdr*)(buff + sizeof(struct ether_header));//
+  char *ip_src = "10.32.143.158";
   char *ip_dst = "10.40.26.7";
 
   iph->version = 4;
   iph->ihl = 5;
   iph->tos = 0;
-  iph->tot_len = sizeof(struct iphdr) + sizeof (struct udphdr);//tamanho do próprio ip + tamanho do cabeçalho do próximo
-  iph->id = htonl (54321);
+  iph->tot_len = htons(sizeof(struct iphdr) + sizeof (struct udphdr));
+  //if(sizeof(struct iphdr) > 1486)
+  //{
+//	iph->tot_len = 1486;
+  //} else {
+	//iph->tot_len = sizeof(struct iphdr) + sizeof (struct udphdr);//tamanho do próprio ip + tamanho do cabeçalho do próximo
+  //}
+  iph->id = htons(54321);
   iph->frag_off = 0;
-  iph->ttl = 255;
-  iph->protocol = 17;
+  iph->ttl = 0xFF;
+  iph->protocol = IPPROTO_UDP;
   //checksum.h e o método fornecido nao estao funcionando
-  iph->check = htons(0xFDB4);//csum((unsigned short *) buff, sizeof(struct ipheader));
-  iph->saddr = inet_addr(ip_src);
-  iph->daddr = inet_addr(ip_dst);
+  iph->check = htons(in_cksum((unsigned short *) buff, sizeof(struct iphdr)));
+  iph->saddr = htons(inet_addr(ip_src));
+  iph->daddr = htons(inet_addr(ip_dst));
 
   iph = (struct iphdr *) &buff[sizeof(struct ether_header)];
   tx_len += sizeof(struct iphdr);
@@ -136,20 +151,22 @@ if(b == 1){
   //montagem do cabecalho UDP
   monta_udp();
 } else if(b == 2){
+  printf("estou no ipv4 - tcp\n");
+  fflush( stdout );
   struct iphdr *iph = (struct iphdr*)(buff + sizeof(struct ether_header));
-  char *ip_src = "192.168.1.103";
+  char *ip_src = "10.32.143.158";
   char *ip_dst = "10.40.26.7";
 
   iph->version = 4;
   iph->ihl = 5;
   iph->tos = 0;
-  iph->tot_len = sizeof(struct iphdr) + sizeof (struct udphdr);//tamanho do próprio ip + tamanho do cabeçalho do próximo
-  iph->id = htonl (54321);
+  iph->tot_len = 28;//sizeof(struct iphdr) + sizeof (struct udphdr);//tamanho do próprio ip + tamanho do cabeçalho do próximo
+  iph->id = 0;
   iph->frag_off = 0;
   iph->ttl = 255;
   iph->protocol = 17;
   //checksum.h e o método fornecido nao estao funcionando
-  iph->check = htons(0xFDB4);//csum((unsigned short *) buff, sizeof(struct ipheader));
+  iph->check = in_cksum((unsigned short *) buff, sizeof(struct iphdr));
   iph->saddr = inet_addr(ip_src);
   iph->daddr = inet_addr(ip_dst);
 
@@ -160,6 +177,7 @@ if(b == 1){
   monta_tcp();
 } else {
   printf("Você digitou: %d\n", b);
+  fflush( stdout );
 }
 
 }
@@ -170,7 +188,9 @@ void monta_ip6(){
 int c = 0;
 
 printf("Digite 1 para UDP ou 2 para TCP; \n");
+fflush( stdout );
 scanf("%d", &c);
+fflush(stdin);
 
 if(c == 1){
   struct ip6_hdr *ip6h = (struct ip6_hdr*)(buff + sizeof(struct ether_header));
@@ -188,9 +208,13 @@ void monta_pacote()
 	int a = 0;
 
 	printf("Digite 4 para IPv4 ou 6 para IPv6; \n");
+	fflush( stdout );
 	scanf("%d", &a);
+	fflush(stdin);
 
 	if(a == 4){
+	printf("vamos para o ipv4\n");
+	fflush( stdout );
 	  // as struct estao descritas nos seus arquivos .h
 	  // por exemplo a ether_header esta no net/ethert.h
 	  // a struct ip esta descrita no netinet/ip.h
@@ -209,12 +233,12 @@ void monta_pacote()
 	  eth->ether_dhost[5] = 0X73;
 
 	  //Endereco Mac Origem
-	  eth->ether_shost[0] = 0X1C;
-	  eth->ether_shost[1] = 0X39;
-	  eth->ether_shost[2] = 0X47;
-	  eth->ether_shost[3] = 0X0E;
-	  eth->ether_shost[4] = 0X1D;
-	  eth->ether_shost[5] = 0X48;
+	  eth->ether_shost[0] = 0Xa4;
+	  eth->ether_shost[1] = 0X1f;
+	  eth->ether_shost[2] = 0X72;
+	  eth->ether_shost[3] = 0Xf5;
+	  eth->ether_shost[4] = 0X90;
+	  eth->ether_shost[5] = 0X52;
 
  	  eth->ether_type = htons(0X800);//IPv4
 
@@ -224,6 +248,8 @@ void monta_pacote()
 	  //montagem do cabecalho do IPv4
  	  monta_ip();
 	} else if(a == 6){
+	printf("vamos para o ipv6\n");
+	fflush( stdout );
 	  // as struct estao descritas nos seus arquivos .h
 	  // por exemplo a ether_header esta no net/ethert.h
 	  // a struct ip esta descrita no netinet/ip.h
@@ -242,12 +268,12 @@ void monta_pacote()
 	  eth->ether_dhost[5] = 0X73;
 
 	  //Endereco Mac Origem
-	  eth->ether_shost[0] = 0X1C;
-	  eth->ether_shost[1] = 0X39;
-	  eth->ether_shost[2] = 0X47;
-	  eth->ether_shost[3] = 0X0E;
-	  eth->ether_shost[4] = 0X1D;
-	  eth->ether_shost[5] = 0X48;
+	  eth->ether_shost[0] = 0Xa4;
+	  eth->ether_shost[1] = 0X1f;
+	  eth->ether_shost[2] = 0X72;
+	  eth->ether_shost[3] = 0Xf5;
+	  eth->ether_shost[4] = 0X90;
+	  eth->ether_shost[5] = 0X52;
 
  	  eth->ether_type = htons(0x86DD);//IPv6
 
@@ -278,7 +304,9 @@ int main(int argc,char *argv[])
 		printf("Erro na criacao do socket.\n");
         exit(1);
  	}
-
+	
+	printf("print inicial\n");
+	fflush( stdout );
 	/* Identicacao de qual maquina (MAC) deve receber a mensagem enviada no socket. */
 	to.sll_protocol= htons(ETH_P_ALL);
 	
@@ -291,9 +319,11 @@ int main(int argc,char *argv[])
 	memcpy (to.sll_addr, addr, 6);
 	len = sizeof(struct sockaddr_ll);
 	//na outra versão tá:
-	to.sll_halen = 6;
-	//to.sll_halen = ETH_ALEN;
+	//to.sll_halen = 6;
+	to.sll_halen = ETH_ALEN;
 
+	printf("vamos comecar com o ethernet\n");
+	fflush( stdout );
 	monta_pacote();
 
 
@@ -302,4 +332,3 @@ int main(int argc,char *argv[])
 			printf("sendto maquina destino.\n");
 	}
 }
-

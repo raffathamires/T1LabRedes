@@ -104,7 +104,7 @@ int main(int argc,char *argv[])
     }
 
 	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
-	strcpy(ifr.ifr_name, "enp2s0");
+	strcpy(ifr.ifr_name, "enp3s0");
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
